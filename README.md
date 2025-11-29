@@ -116,6 +116,259 @@ python manage.py runserver
 
 Swagger documentation is available at `/swagger/` once the development server is running.
 
+### API Endpoints
+
+All API endpoints are accessible under `/api/` following RESTful conventions.
+
+#### Listing Endpoints
+
+- **List all listings**: `GET /api/listings/`
+- **Create a listing**: `POST /api/listings/`
+- **Retrieve a listing**: `GET /api/listings/{id}/`
+- **Update a listing**: `PUT /api/listings/{id}/`
+- **Partial update**: `PATCH /api/listings/{id}/`
+- **Delete a listing**: `DELETE /api/listings/{id}/`
+
+**Query Parameters** (for listing):
+- `location` - Filter by location (case-insensitive)
+- `available` - Filter by availability (true/false)
+- `min_price` - Filter by minimum price per night
+- `max_price` - Filter by maximum price per night
+
+#### Booking Endpoints
+
+- **List all bookings**: `GET /api/bookings/`
+- **Create a booking**: `POST /api/bookings/`
+- **Retrieve a booking**: `GET /api/bookings/{id}/`
+- **Update a booking**: `PUT /api/bookings/{id}/`
+- **Partial update**: `PATCH /api/bookings/{id}/`
+- **Delete a booking**: `DELETE /api/bookings/{id}/`
+
+**Query Parameters** (for bookings):
+- `status` - Filter by booking status (pending, confirmed, cancelled, completed)
+- `guest_id` - Filter by guest user ID
+- `listing_id` - Filter by listing ID
+
+### Testing with Postman
+
+#### 1. GET - List All Listings
+```
+GET http://localhost:8000/api/listings/
+```
+
+#### 2. GET - List Listings with Filters
+```
+GET http://localhost:8000/api/listings/?location=paris&available=true&min_price=50&max_price=200
+```
+
+#### 3. POST - Create a New Listing
+```
+POST http://localhost:8000/api/listings/
+Content-Type: application/json
+
+{
+  "title": "Cozy Apartment in Downtown",
+  "description": "Beautiful apartment with city views",
+  "location": "New York",
+  "price_per_night": "150.00",
+  "number_of_bedrooms": 2,
+  "number_of_bathrooms": 1,
+  "max_guests": 4,
+  "available": true,
+  "host_id": 1
+}
+```
+
+#### 4. GET - Retrieve a Specific Listing
+```
+GET http://localhost:8000/api/listings/1/
+```
+
+#### 5. PUT - Update a Listing
+```
+PUT http://localhost:8000/api/listings/1/
+Content-Type: application/json
+
+{
+  "title": "Updated Cozy Apartment",
+  "description": "Newly renovated apartment with city views",
+  "location": "New York",
+  "price_per_night": "175.00",
+  "number_of_bedrooms": 2,
+  "number_of_bathrooms": 1,
+  "max_guests": 4,
+  "available": true,
+  "host_id": 1
+}
+```
+
+#### 6. PATCH - Partial Update a Listing
+```
+PATCH http://localhost:8000/api/listings/1/
+Content-Type: application/json
+
+{
+  "price_per_night": "180.00",
+  "available": false
+}
+```
+
+#### 7. DELETE - Delete a Listing
+```
+DELETE http://localhost:8000/api/listings/1/
+```
+
+#### 8. POST - Create a New Booking
+```
+POST http://localhost:8000/api/bookings/
+Content-Type: application/json
+
+{
+  "listing_id": 1,
+  "guest_id": 2,
+  "check_in": "2025-12-15",
+  "check_out": "2025-12-20",
+  "number_of_guests": 2,
+  "total_price": "750.00",
+  "status": "pending"
+}
+```
+
+#### 9. GET - List Bookings with Filters
+```
+GET http://localhost:8000/api/bookings/?status=confirmed&guest_id=2
+```
+
+#### 10. PUT - Update a Booking Status
+```
+PUT http://localhost:8000/api/bookings/1/
+Content-Type: application/json
+
+{
+  "listing_id": 1,
+  "guest_id": 2,
+  "check_in": "2025-12-15",
+  "check_out": "2025-12-20",
+  "number_of_guests": 2,
+  "total_price": "750.00",
+  "status": "confirmed"
+}
+```
+
+### Testing with cURL
+
+#### List All Listings
+```bash
+curl -X GET http://localhost:8000/api/listings/
+```
+
+#### Create a Listing
+```bash
+curl -X POST http://localhost:8000/api/listings/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Beach House",
+    "description": "Stunning beachfront property",
+    "location": "Miami",
+    "price_per_night": "250.00",
+    "number_of_bedrooms": 3,
+    "number_of_bathrooms": 2,
+    "max_guests": 6,
+    "available": true,
+    "host_id": 1
+  }'
+```
+
+#### Get a Specific Listing
+```bash
+curl -X GET http://localhost:8000/api/listings/1/
+```
+
+#### Update a Listing
+```bash
+curl -X PATCH http://localhost:8000/api/listings/1/ \
+  -H "Content-Type: application/json" \
+  -d '{"available": false}'
+```
+
+#### Delete a Listing
+```bash
+curl -X DELETE http://localhost:8000/api/listings/1/
+```
+
+#### Create a Booking
+```bash
+curl -X POST http://localhost:8000/api/bookings/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "listing_id": 1,
+    "guest_id": 2,
+    "check_in": "2025-12-15",
+    "check_out": "2025-12-20",
+    "number_of_guests": 2,
+    "total_price": "750.00",
+    "status": "pending"
+  }'
+```
+
+#### List Bookings with Filter
+```bash
+curl -X GET "http://localhost:8000/api/bookings/?status=confirmed"
+```
+
+### Expected Response Formats
+
+#### Listing Response
+```json
+{
+  "id": 1,
+  "title": "Cozy Apartment in Downtown",
+  "description": "Beautiful apartment with city views",
+  "location": "New York",
+  "price_per_night": "150.00",
+  "number_of_bedrooms": 2,
+  "number_of_bathrooms": 1,
+  "max_guests": 4,
+  "available": true,
+  "host": {
+    "id": 1,
+    "username": "host1",
+    "email": "host1@example.com",
+    "first_name": "John",
+    "last_name": "Doe"
+  },
+  "average_rating": 4.5,
+  "reviews": [],
+  "created_at": "2025-11-29T10:00:00Z",
+  "updated_at": "2025-11-29T10:00:00Z"
+}
+```
+
+#### Booking Response
+```json
+{
+  "id": 1,
+  "listing": {
+    "id": 1,
+    "title": "Cozy Apartment in Downtown",
+    "location": "New York"
+  },
+  "guest": {
+    "id": 2,
+    "username": "guest1",
+    "email": "guest1@example.com"
+  },
+  "check_in": "2025-12-15",
+  "check_out": "2025-12-20",
+  "number_of_guests": 2,
+  "total_price": "750.00",
+  "status": "pending",
+  "duration_nights": 5,
+  "created_at": "2025-11-29T10:00:00Z",
+  "updated_at": "2025-11-29T10:00:00Z"
+}
+```
+
 ## Project Structure
 
 ```
