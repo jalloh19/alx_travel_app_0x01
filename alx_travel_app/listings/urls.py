@@ -3,7 +3,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import BookingViewSet, HealthCheckView, ListingViewSet
+from .views import BookingViewSet, HealthCheckView, ListingViewSet, InitiatePaymentView, VerifyPaymentView
 
 # Create a router and register our viewsets with it
 router = DefaultRouter()
@@ -13,5 +13,7 @@ router.register(r'bookings', BookingViewSet, basename='booking')
 # The API URLs are now determined automatically by the router
 urlpatterns = [
     path("health/", HealthCheckView.as_view(), name="listings-health"),
+    path("payments/initiate/<int:booking_id>/", InitiatePaymentView.as_view(), name="initiate-payment"),
+    path("payments/verify/<str:tx_ref>/", VerifyPaymentView.as_view(), name="verify-payment"),
     path("", include(router.urls)),
 ]

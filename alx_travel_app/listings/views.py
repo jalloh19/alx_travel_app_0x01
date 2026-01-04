@@ -1,11 +1,14 @@
 """API endpoints for listings-related functionality."""
 
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+import requests
+import uuid
+from django.conf import settings
 
-from .models import Booking, Listing
-from .serializers import BookingSerializer, ListingSerializer
+from .models import Booking, Listing, Payment
+from .serializers import BookingSerializer, ListingSerializer, PaymentSerializer
 
 
 class HealthCheckView(APIView):
@@ -94,3 +97,90 @@ class BookingViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(listing_id=listing_id)
         
         return queryset
+
+
+class InitiatePaymentView(APIView):
+    def post(self, request, booking_id):
+        try:
+            booking = Booking.objects.get(id=booking_id)
+        except Booking.DoesNotExist:
+            return Response({"error": "Booking not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Create a unique transaction ID
+        tx_ref = str(uuid.uuid4())
+        
+        # Prepare payload for Chapa
+        payload = {
+            "amount": str(booking.total_price),
+            "currency": "ETB",
+            "email": booking.guest.email,
+            "first_name": booking.guest.first_name,
+            "last_name": booking.guest.last_name,
+            "tx_ref": tx_ref,
+            "callback_url": f"http://localhost:8000/api/payments/verify/{tx_ref}/",
+            "return_url": f"http://localhost:8000/payment-success/",
+            "customization[title]": "Booking Payment",
+            "customization[description]": f"Payment for booking {booking.id}"
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {settings.CHAPA_SECRET_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            response = requests.post(settings.CHAPA_API_URL, json=payload, headers=headers)
+            data = response.json()
+            
+            if data["status"] == "success":
+                # Create Payment record
+                Payment.objects.create(
+                    booking=booking,
+                    transaction_id=tx_ref,
+                    amount=booking.total_price,
+                    status="Pending"
+                )
+                return Response(data, status=status.HTTP_200_OK)
+            else:
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class VerifyPaymentView(APIView):
+    def get(self, request, tx_ref):
+        try:
+            payment = Payment.objects.get(transaction_id=tx_ref)
+        except Payment.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        headers = {
+            "Authorization": f"Bearer {settings.CHAPA_SECRET_KEY}"
+        }
+        
+        try:
+            url = f"{settings.CHAPA_VERIFY_URL}/{tx_ref}"
+            response = requests.get(url, headers=headers)
+            data = response.json()
+            
+            if data["status"] == "success":
+                payment.status = "Completed"
+                payment.save()
+                
+                # Update booking status
+                payment.booking.status = "confirmed"
+                payment.booking.save()
+                
+                # Send confirmation email (Celery task)
+                from .tasks import send_payment_confirmation_email
+                send_payment_confirmation_email.delay(payment.booking.id)
+                
+                return Response({"status": "Payment verified successfully", "data": data}, status=status.HTTP_200_OK)
+            else:
+                payment.status = "Failed"
+                payment.save()
+                return Response({"status": "Payment verification failed", "data": data}, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -26,6 +26,10 @@ DEBUG = env("DEBUG", default=True)
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
+CHAPA_SECRET_KEY = env("CHAPA_SECRET_KEY", default="your-chapa-secret-key")
+CHAPA_API_URL = "https://api.chapa.co/v1/transaction/initialize"
+CHAPA_VERIFY_URL = "https://api.chapa.co/v1/transaction/verify"
+
 
 # Application definition
 

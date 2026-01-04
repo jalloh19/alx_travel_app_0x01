@@ -3,7 +3,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import Booking, Listing, Review
+from .models import Booking, Listing, Review, Payment
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -171,3 +171,12 @@ class BookingSerializer(serializers.ModelSerializer):
                 "Total price must be greater than zero."
             )
         return value
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    """Serializer for Payment model."""
+    
+    class Meta:
+        model = Payment
+        fields = ["id", "booking", "transaction_id", "amount", "status", "created_at"]
+        read_only_fields = ["id", "transaction_id", "status", "created_at"]
